@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sorting Visualizer</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{min-height:100vh;color:white;overflow-x:hidden}
+.app{min-height:100vh;display:grid;grid-template-columns:310px 1fr}
+.sidebar{padding:22px;background:rgba(0,0,0,.36);backdrop-filter:blur(12px);z-index:50}
+.sidebar h1{font-size:30px;margin-bottom:14px}
+.definition-box{background:rgba(255,255,255,.18);padding:16px;border-radius:18px;margin-bottom:18px;line-height:1.5;font-size:15px}
+.panel{background:rgba(255,255,255,.22);padding:16px;border-radius:18px;margin-bottom:16px}
+.panel label{display:block;margin:12px 0;font-weight:bold}
+button{width:100%;padding:12px;margin:6px 0;border:none;border-radius:12px;color:#0b5ed7;font-weight:bold;cursor:pointer;background:linear-gradient(#fff,#d9ecff)}
+input[type=range]{width:100%;accent-color:#ff3d3d}
+.main{position:relative;padding:24px;overflow:hidden}
+.best-box{position:fixed;top:18px;left:330px;z-index:100;background:rgba(0,0,0,.72);padding:13px 20px;border-radius:14px;color:#7cff9d;font-weight:bold}
+.visualizers{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:22px;position:relative;z-index:5;margin-top:40px}
+
+.underwater-theme{background:linear-gradient(#42d7ff,#00b6d7)}
+.desert-theme{background:linear-gradient(#9be9ff 0%,#d8f6d3 35%,#f4a03e 66%,#8a4525 100%)}
+.snow-theme{background:linear-gradient(#a9efff,#eefbff 48%,#fff)}
+.aurora-theme{background:linear-gradient(#050b2e,#0b1d56 45%,#162b73 100%)}
+
+.sort-card{position:relative;min-height:650px;border-radius:28px;padding:20px;overflow:hidden;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);box-shadow:0 18px 40px rgba(0,0,0,.22)}
+.sort-card.compact{min-height:430px}
+.sort-card h2{text-align:center;font-size:38px;margin-bottom:18px;text-shadow:0 3px 12px rgba(0,0,0,.25)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat-box,.description,.complexity div{background:rgba(255,255,255,.9);color:#123;border-radius:18px;text-align:center;font-weight:bold;box-shadow:0 8px 22px rgba(0,0,0,.18);border:2px solid rgba(255,255,255,.95)}
+.stat-box{padding:16px}.stat-box small{display:block;margin-bottom:6px;color:#245;font-size:15px}
+.description{text-align:left;padding:18px;font-size:18px;margin-bottom:18px;color:#123}
+.complexity{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.complexity div{padding:16px;color:#123}
+.compact .stats-grid,.compact .description,.compact .complexity{display:none}
+.array-area{height:320px;display:flex;justify-content:center;align-items:flex-end;gap:14px;position:relative;z-index:8}
+.item{display:flex;flex-direction:column;align-items:center}
+.value-bubble{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#e6f8ff);color:#0b5ed7;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:8px}
+.bar{width:36px;border-radius:16px 16px 0 0;background:linear-gradient(to top,#1277ff,#78dfff)}
+.index{margin-top:6px;font-weight:bold}
+.item.active .value-bubble,.item.active .bar{background:linear-gradient(to top,#ff7a00,#ffd166);color:white;transform:translateY(-6px)}
+.item.sorted .value-bubble,.item.sorted .bar{background:linear-gradient(to top,#159947,#80ff9f);color:white}
+.rank{text-align:center;font-weight:bold;margin-top:10px;font-size:18px}
+
+/* WATER */
+.underwater-scene{background:linear-gradient(#35dfff 0%,#12c9df 66%,#e9d18b 67%,#d5b46b 100%)}
+.underwater-scene:before{content:"";position:absolute;top:0;left:-5%;width:110%;height:72px;background:rgba(190,255,255,.6);border-bottom-left-radius:50% 38px;border-bottom-right-radius:50% 38px;z-index:1}
+.rock{position:absolute;bottom:25px;width:120px;height:38px;background:#73948c;border-radius:50%;z-index:2}
+.rock.rk1{left:45px}.rock.rk2{right:90px;width:150px}.rock.rk3{left:220px;width:100px}
+.seaweed{position:absolute;bottom:35px;width:18px;border-radius:50% 50% 0 0;background:linear-gradient(#b7ff68,#168c44);transform-origin:bottom;animation:sway 3s infinite ease-in-out;z-index:3}
+.seaweed:before,.seaweed:after{content:"";position:absolute;width:12px;height:75px;background:linear-gradient(#b7ff68,#249c60);border-radius:50%;bottom:45px}
+.seaweed:before{left:-18px;transform:rotate(-35deg)}.seaweed:after{right:-18px;transform:rotate(35deg)}
+.seaweed.s1{left:55px;height:175px}.seaweed.s2{left:105px;height:230px;animation-delay:.4s}.seaweed.s3{right:70px;height:210px;animation-delay:.8s}
+@keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(8deg)}}
+
+.fish{position:absolute;z-index:4;opacity:.98;filter:drop-shadow(0 6px 8px rgba(0,0,0,.15))}
+.fish:before{content:"";position:absolute;top:50%;transform:translateY(-50%)}
+.fish:after{content:"";position:absolute;background:white;border-radius:50%;box-shadow:inset -3px 0 0 black}
+.fish .fin-top{position:absolute;top:-10px;width:32px;height:22px;clip-path:polygon(0 100%,50% 0,100% 100%)}
+.fish .fin-side{position:absolute;top:24px;width:28px;height:20px;clip-path:polygon(100% 0,0 45%,100% 100%)}
+.fish-left{width:100px;height:48px;border-radius:45% 60% 60% 45%}
+.fish-left:before{left:-28px;border-top:14px solid transparent;border-bottom:14px solid transparent}
+.fish-left:after{right:18px;top:14px;width:12px;height:12px}
+.fish-left .fin-top{right:48px}.fish-left .fin-side{right:48px}
+.f1{top:95px;right:-130px;background:linear-gradient(to left,#7bd9ff,#2593e6 62%,#1d62c6);animation:fishLeft1 12s linear infinite}
+.f1:before{border-right:34px solid #1d62c6}.f1 .fin-top,.f1 .fin-side{background:#2472d2}
+.f2{top:180px;right:-120px;transform:scale(.75);background:linear-gradient(to left,#ffd36b,#ff8b2b 62%,#e85d04);animation:fishLeft2 15s linear infinite}
+.f2:before{border-right:34px solid #e85d04}.f2 .fin-top,.f2 .fin-side{background:#ff7a18}
+.f3{top:260px;right:-120px;transform:scale(.78);background:linear-gradient(to left,#caa8ff,#7c3aed 62%,#4c1d95);animation:fishLeft3 14s linear infinite}
+.f3:before{border-right:34px solid #4c1d95}.f3 .fin-top,.f3 .fin-side{background:#6d28d9}
+@keyframes fishLeft1{from{right:-130px}to{right:calc(100% + 130px)}}
+@keyframes fishLeft2{from{right:-120px;transform:scale(.75)}to{right:calc(100% + 120px);transform:scale(.75)}}
+@keyframes fishLeft3{from{right:-120px;transform:scale(.78)}to{right:calc(100% + 120px);transform:scale(.78)}}
+
+/* DESERT */
+.desert-scene{background:radial-gradient(circle at 73% 22%,#ffe07b 0 10%,transparent 11%),linear-gradient(#93e9ff 0%,#c8f4d5 34%,#fbb85f 62%,#8a4525 100%)}
+.desert-scene:before{content:"";position:absolute;bottom:125px;left:-10%;width:120%;height:170px;background:#ef842a;border-radius:50% 50% 0 0;z-index:1}
+.desert-scene:after{content:"";position:absolute;bottom:0;left:-10%;width:120%;height:170px;background:#6f3b22;border-radius:50% 50% 0 0;z-index:1}
+.palm{position:absolute;bottom:130px;left:55px;width:26px;height:180px;background:linear-gradient(to right,#8b3f20,#c96b38);border-radius:40px;z-index:3;transform:rotate(-8deg);transform-origin:bottom}
+.leaf{position:absolute;width:95px;height:34px;background:linear-gradient(to right,#1f9f4a,#7de35f);border-radius:100% 0 100% 0;top:-20px;left:-35px;transform-origin:right center}
+.leaf:nth-child(1){transform:rotate(-55deg)}.leaf:nth-child(2){transform:rotate(-20deg)}.leaf:nth-child(3){transform:rotate(20deg)}.leaf:nth-child(4){transform:rotate(55deg)}
+.cactus{position:absolute;bottom:35px;width:34px;height:120px;background:#13943e;border-radius:20px 20px 0 0;z-index:3}
+.cactus:before,.cactus:after{content:"";position:absolute;width:26px;height:65px;border:10px solid #13943e;border-bottom:none;top:35px}
+.cactus:before{left:-36px;border-radius:30px 0 0 0}.cactus:after{right:-36px;border-radius:0 30px 0 0}
+.c1{right:55px}
+.camel{position:absolute;bottom:95px;left:-170px;font-size:78px;z-index:4;transform:scaleX(-1);animation:camelRight 12s linear infinite}
+.camel.two{bottom:135px;left:-220px;animation-delay:4s;font-size:62px}
+@keyframes camelRight{from{left:-180px;transform:scaleX(-1)}to{left:calc(100% + 180px);transform:scaleX(-1)}}
+
+/* SNOW PENGUIN */
+.snow-scene{background:radial-gradient(circle at 20% 12%,rgba(255,255,255,.95),transparent 14%),radial-gradient(circle at 70% 18%,rgba(180,235,255,.95),transparent 18%),linear-gradient(#9deaff,#e9fbff 45%,#fff)}
+.snow-mountain{position:absolute;bottom:80px;width:260px;height:220px;background:linear-gradient(#fff,#8bd9f2);clip-path:polygon(50% 0,0 100%,100% 100%);opacity:.78;z-index:1}
+.snow-mountain.m1{left:35px}.snow-mountain.m2{right:40px;width:210px;height:170px;opacity:.58}
+.ice{position:absolute;bottom:0;left:0;width:100%;height:135px;background:rgba(255,255,255,.78);z-index:1}
+.penguin{position:absolute;font-size:76px;z-index:5;filter:drop-shadow(0 6px 8px rgba(0,0,0,.18))}
+.penguin.p1{bottom:70px;left:38%;animation:penguinPlay1 1.6s ease-in-out infinite}
+.penguin.p2{bottom:70px;left:52%;animation:penguinPlay2 1.9s ease-in-out infinite}
+.penguin.p3{bottom:55px;left:25%;font-size:58px;animation:penguinJump 1.8s ease-in-out infinite}
+@keyframes penguinPlay1{0%,100%{transform:rotate(-8deg)}50%{transform:translateX(18px) rotate(10deg)}}
+@keyframes penguinPlay2{0%,100%{transform:rotate(8deg)}50%{transform:translateX(-18px) rotate(-10deg)}}
+@keyframes penguinJump{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+
+/* AURORA COMPARISON THEME */
+.aurora-scene{
+  background:
+    radial-gradient(circle at 85% 12%,#e9f7ff 0 2%,transparent 3%),
+    radial-gradient(circle at 20% 28%,rgba(255,255,255,.8) 0 1px,transparent 2px),
+    radial-gradient(circle at 35% 18%,rgba(255,255,255,.8) 0 1px,transparent 2px),
+    radial-gradient(circle at 62% 25%,rgba(255,255,255,.8) 0 1px,transparent 2px),
+    linear-gradient(#06123f 0%,#10266b 55%,#1f3a82 100%);
+}
+.aurora-scene:before{
+  content:"";
+  position:absolute;
+  top:40px;
+  left:-10%;
+  width:120%;
+  height:210px;
+  background:
+    linear-gradient(110deg,transparent 5%,rgba(60,255,210,.75) 25%,rgba(190,72,255,.7) 42%,rgba(64,235,255,.6) 65%,transparent 85%);
+  filter:blur(10px);
+  border-radius:50%;
+  transform:rotate(-8deg);
+  animation:auroraMove 5s ease-in-out infinite alternate;
+  z-index:1;
+}
+.aurora-scene:after{
+  content:"";
+  position:absolute;
+  bottom:0;
+  left:-10%;
+  width:120%;
+  height:120px;
+  background:radial-gradient(ellipse at center,#162b73 0%,#06123f 70%);
+  border-radius:50% 50% 0 0;
+  z-index:1;
+}
+@keyframes auroraMove{from{transform:rotate(-8deg) translateX(-20px)}to{transform:rotate(-4deg) translateX(20px)}}
+.aurora-theme .value-bubble{
+  width:44px;height:44px;color:#111;background:radial-gradient(circle,#fff9b2,#ffd166);
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 56%,79% 91%,50% 70%,21% 91%,32% 56%,2% 35%,39% 35%);
+}
+.shooting-star{position:absolute;top:-45px;width:130px;height:3px;background:linear-gradient(to right,transparent,#fff);transform:rotate(35deg);z-index:3;animation:shoot 2.7s linear infinite}
+.s1{left:5%}.s2{left:42%;animation-delay:1s}.s3{left:75%;animation-delay:1.8s}
+@keyframes shoot{0%{top:-50px;opacity:1}100%{top:450px;transform:translateX(-230px) rotate(35deg);opacity:0}}
+
+@media(max-width:900px){.app{grid-template-columns:1fr}.best-box{left:20px}.visualizers{grid-template-columns:1fr}}
+</style>
+</head>
+
+<body>
+<div id="app" class="app underwater-theme">
+  <aside class="sidebar">
+    <h1>Sorting Visualizer</h1>
+
+    <div id="definitionBox" class="definition-box"></div>
+
+    <div class="panel">
+      <label><input type="checkbox" value="bubble" checked> Bubble Sort</label>
+      <label><input type="checkbox" value="selection"> Selection Sort</label>
+      <label><input type="checkbox" value="insertion"> Insertion Sort</label>
+    </div>
+
+    <div class="panel">
+      <button id="generateBtn">Generate Array</button>
+      <button id="playBtn">Play</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="prevBtn">Previous Step</button>
+      <button id="nextBtn">Next Step</button>
+    </div>
+
+    <div class="panel">
+      <label>Animation Speed</label>
+      <input type="range" id="speedRange" min="200" max="1600" step="100" value="800">
+      <strong id="speedValue">800 ms</strong>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="bestBox" class="best-box">Best: Bubble Sort</div>
+    <div id="visualizers" class="visualizers"></div>
+  </main>
+</div>
+
+<script>
+const app=document.getElementById("app"),visualizers=document.getElementById("visualizers"),checkboxes=document.querySelectorAll('input[type="checkbox"]');
+const generateBtn=document.getElementById("generateBtn"),playBtn=document.getElementById("playBtn"),pauseBtn=document.getElementById("pauseBtn"),prevBtn=document.getElementById("prevBtn"),nextBtn=document.getElementById("nextBtn");
+const speedRange=document.getElementById("speedRange"),speedValue=document.getElementById("speedValue"),bestBox=document.getElementById("bestBox"),definitionBox=document.getElementById("definitionBox");
+
+let originalArray=[],selected=["bubble"],data={},currentStep=0,timer=null,audioContext=null;
+
+const names={bubble:"Bubble Sort",selection:"Selection Sort",insertion:"Insertion Sort"};
+const comp={bubble:{best:"O(n)",avg:"O(n²)",worst:"O(n²)",space:"O(1)"},selection:{best:"O(n²)",avg:"O(n²)",worst:"O(n²)",space:"O(1)"},insertion:{best:"O(n)",avg:"O(n²)",worst:"O(n²)",space:"O(1)"}};
+const definitions={
+ bubble:"Bubble Sort compares adjacent elements and swaps them when they are in the wrong order. Larger values slowly move to the end.",
+ selection:"Selection Sort repeatedly finds the smallest element from the unsorted part and places it in the correct position.",
+ insertion:"Insertion Sort builds the sorted array one item at a time by inserting each new value into its correct position."
+};
+
+function initAudio(){if(!audioContext)audioContext=new(window.AudioContext||window.webkitAudioContext)()}
+function beep(type){if(!audioContext)return;const o=audioContext.createOscillator(),g=audioContext.createGain();o.connect(g);g.connect(audioContext.destination);o.type="sine";o.frequency.value=type==="swap"?760:520;g.gain.value=type==="swap"?.04:.025;o.start();g.gain.exponentialRampToValueAtTime(.0001,audioContext.currentTime+.08);o.stop(audioContext.currentTime+.08)}
+function randArray(){return Array.from({length:8},()=>Math.floor(Math.random()*70)+10)}
+function getSelected(){const s=[...checkboxes].filter(c=>c.checked).map(c=>c.value);return s.length?s:["bubble"]}
+function isAsc(a){return a.every((v,i)=>i===0||a[i-1]<=v)}
+function isDesc(a){return a.every((v,i)=>i===0||a[i-1]>=v)}
+function genCase(a){if(isAsc(a))return"Best Case";if(isDesc(a))return"Worst Case";return"Average Case"}
+function genComplexity(algo,a){const c=genCase(a);return c==="Best Case"?comp[algo].best:c==="Worst Case"?comp[algo].worst:comp[algo].avg}
+function addStep(steps,array,active,sorted,desc,comparisons,swaps,sound){steps.push({array:[...array],active:[...active],sorted:[...sorted],desc,comparisons,swaps,sound})}
+
+function bubbleSteps(array){const a=[...array],steps=[];let comparisons=0,swaps=0,sorted=[];addStep(steps,a,[],[],"Initial array generated.",comparisons,swaps,"");for(let i=0;i<a.length;i++){let changed=false;for(let j=0;j<a.length-i-1;j++){comparisons++;addStep(steps,a,[j,j+1],sorted,`Comparing ${a[j]} and ${a[j+1]}.`,comparisons,swaps,"compare");if(a[j]>a[j+1]){[a[j],a[j+1]]=[a[j+1],a[j]];swaps++;changed=true;addStep(steps,a,[j,j+1],sorted,`Swapped ${a[j+1]} and ${a[j]}.`,comparisons,swaps,"swap")}}sorted.unshift(a.length-i-1);addStep(steps,a,[],sorted,`${a[a.length-i-1]} reached correct position.`,comparisons,swaps,"");if(!changed)break}addStep(steps,a,[],Array.from(a.keys()),"Bubble Sort completed.",comparisons,swaps,"");return steps}
+function selectionSteps(array){const a=[...array],steps=[];let comparisons=0,swaps=0,sorted=[];addStep(steps,a,[],[],"Initial array generated.",comparisons,swaps,"");for(let i=0;i<a.length;i++){let min=i;for(let j=i+1;j<a.length;j++){comparisons++;addStep(steps,a,[min,j],sorted,`Comparing ${a[min]} and ${a[j]}.`,comparisons,swaps,"compare");if(a[j]<a[min])min=j}if(min!==i){[a[i],a[min]]=[a[min],a[i]];swaps++;addStep(steps,a,[i,min],sorted,`Swapped ${a[i]} into position ${i}.`,comparisons,swaps,"swap")}sorted.push(i);addStep(steps,a,[],sorted,`${a[i]} is fixed.`,comparisons,swaps,"")}addStep(steps,a,[],Array.from(a.keys()),"Selection Sort completed.",comparisons,swaps,"");return steps}
+function insertionSteps(array){const a=[...array],steps=[];let comparisons=0,swaps=0,sorted=[0];addStep(steps,a,[],[],"Initial array generated.",comparisons,swaps,"");for(let i=1;i<a.length;i++){let key=a[i],j=i-1;addStep(steps,a,[i],sorted,`Selected key ${key}.`,comparisons,swaps,"");while(j>=0){comparisons++;addStep(steps,a,[j,j+1],sorted,`Comparing key ${key} with ${a[j]}.`,comparisons,swaps,"compare");if(a[j]>key){a[j+1]=a[j];swaps++;addStep(steps,a,[j,j+1],sorted,`Shifted ${a[j]} right.`,comparisons,swaps,"swap");j--}else break}a[j+1]=key;sorted=Array.from({length:i+1},(_,x)=>x);addStep(steps,a,[j+1],sorted,`Inserted ${key}.`,comparisons,swaps,"")}addStep(steps,a,[],Array.from(a.keys()),"Insertion Sort completed.",comparisons,swaps,"");return steps}
+function getSteps(algo,a){return algo==="bubble"?bubbleSteps(a):algo==="selection"?selectionSteps(a):insertionSteps(a)}
+
+function setTheme(){app.className="app";if(selected.length>1)app.classList.add("aurora-theme");else if(selected[0]==="bubble")app.classList.add("underwater-theme");else if(selected[0]==="selection")app.classList.add("desert-theme");else app.classList.add("snow-theme")}
+
+function updateDefinition(){if(selected.length===1){definitionBox.innerHTML=`<strong>${names[selected[0]]}</strong><br>${definitions[selected[0]]}`}else{const results=selected.map(algo=>{const steps=data[algo]?.steps||getSteps(algo,originalArray),last=steps[steps.length-1];return{algo,score:last.comparisons+last.swaps+steps.length}}).sort((a,b)=>a.score-b.score);const best=results[0]?.algo||selected[0];definitionBox.innerHTML=`<strong>Comparison Mode</strong><br>Fastest for this generated array: <strong>${names[best]}</strong><br>Time Complexity: <strong>${genComplexity(best,originalArray)}</strong><br>Space Complexity: <strong>${comp[best].space}</strong>`}}
+
+function scene(algo){
+ if(selected.length>1)return`<div class="shooting-star s1"></div><div class="shooting-star s2"></div><div class="shooting-star s3"></div>`;
+ if(algo==="bubble")return`<div class="rock rk1"></div><div class="rock rk2"></div><div class="rock rk3"></div><div class="seaweed s1"></div><div class="seaweed s2"></div><div class="seaweed s3"></div><div class="fish fish-left f1"><span class="fin-top"></span><span class="fin-side"></span></div><div class="fish fish-left f2"><span class="fin-top"></span><span class="fin-side"></span></div><div class="fish fish-left f3"><span class="fin-top"></span><span class="fin-side"></span></div>`;
+ if(algo==="selection")return`<div class="palm"><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div></div><div class="cactus c1"></div><div class="camel">🐫</div><div class="camel two">🐪</div>`;
+ return`<div class="snow-mountain m1"></div><div class="snow-mountain m2"></div><div class="ice"></div><div class="penguin p1">🐧</div><div class="penguin p2">🐧</div><div class="penguin p3">🐧</div>`;
+}
+
+function cardClass(algo){if(selected.length>1)return"aurora-scene";if(algo==="bubble")return"underwater-scene";if(algo==="selection")return"desert-scene";return"snow-scene"}
+
+function buildCards(){visualizers.innerHTML="";const compact=selected.length>1;selected.forEach(algo=>{const card=document.createElement("section");card.className=`sort-card ${cardClass(algo)} ${compact?"compact":""}`;card.innerHTML=`${scene(algo)}<h2>${names[algo]}</h2><div class="stats-grid"><div class="stat-box"><small>Step</small><strong id="${algo}-step">0 / 0</strong></div><div class="stat-box"><small>Comparisons</small><strong id="${algo}-comparisons">0</strong></div><div class="stat-box"><small>Swaps/Shifts</small><strong id="${algo}-swaps">0</strong></div><div class="stat-box"><small>Total Steps</small><strong id="${algo}-total">0</strong></div></div><div class="description" id="${algo}-description">Ready.</div><div class="complexity"><div>Best<br>${comp[algo].best}</div><div>Average<br>${comp[algo].avg}</div><div>Worst<br>${comp[algo].worst}</div><div>Generated<br>${genCase(originalArray)}<br>${genComplexity(algo,originalArray)}</div></div><div class="array-area" id="${algo}-array"></div><div class="rank" id="${algo}-rank"></div>`;visualizers.appendChild(card)})}
+
+function renderArray(algo){const d=data[algo],step=d.steps[Math.min(currentStep,d.steps.length-1)],box=document.getElementById(`${algo}-array`),max=Math.max(...step.array);box.innerHTML="";step.array.forEach((value,index)=>{const item=document.createElement("div");item.className="item";if(step.active.includes(index))item.classList.add("active");if(step.sorted.includes(index))item.classList.add("sorted");item.innerHTML=`<div class="value-bubble">${value}</div><div class="bar" style="height:${(value/max)*170+40}px"></div><div class="index">${index}</div>`;box.appendChild(item)});const stepEl=document.getElementById(`${algo}-step`);if(stepEl){document.getElementById(`${algo}-step`).textContent=`${Math.min(currentStep,d.steps.length-1)} / ${d.steps.length-1}`;document.getElementById(`${algo}-comparisons`).textContent=step.comparisons;document.getElementById(`${algo}-swaps`).textContent=step.swaps;document.getElementById(`${algo}-total`).textContent=d.steps.length;document.getElementById(`${algo}-description`).textContent=step.desc}return step.sound}
+
+function updateBest(){const results=selected.map(algo=>{const steps=data[algo].steps,last=steps[steps.length-1];return{algo,score:last.comparisons+last.swaps+steps.length,comparisons:last.comparisons,swaps:last.swaps}}).sort((a,b)=>a.score-b.score);results.forEach((r,i)=>{const el=document.getElementById(`${r.algo}-rank`);if(el){el.textContent=i===0?"⬆ Best":"⬇ More Operations";el.style.color=i===0?"#0e8f3d":"#ad6b00"}});bestBox.textContent=`Best: ${names[results[0].algo]} (${results[0].comparisons} comparisons, ${results[0].swaps} swaps/shifts)`}
+
+function renderAll(){let sound="";selected.forEach(algo=>{const s=renderArray(algo);if(s==="swap")sound="swap";else if(s==="compare"&&sound!=="swap")sound="compare"});if(sound)beep(sound);const maxSteps=Math.max(...selected.map(a=>data[a].steps.length));prevBtn.disabled=currentStep===0;nextBtn.disabled=currentStep>=maxSteps-1;updateBest();updateDefinition()}
+function setup(){stop();selected=getSelected();setTheme();buildCards();data={};selected.forEach(algo=>data[algo]={steps:getSteps(algo,originalArray)});currentStep=0;renderAll()}
+function generateNew(){originalArray=randArray();setup()}
+function play(){initAudio();stop();const maxSteps=Math.max(...selected.map(a=>data[a].steps.length));timer=setInterval(()=>{if(currentStep<maxSteps-1){currentStep++;renderAll()}else stop()},Number(speedRange.value))}
+function stop(){if(timer){clearInterval(timer);timer=null}}
+
+generateBtn.onclick=()=>{initAudio();generateNew()};
+playBtn.onclick=play;
+pauseBtn.onclick=stop;
+nextBtn.onclick=()=>{initAudio();stop();const maxSteps=Math.max(...selected.map(a=>data[a].steps.length));if(currentStep<maxSteps-1){currentStep++;renderAll()}};
+prevBtn.onclick=()=>{initAudio();stop();if(currentStep>0){currentStep--;renderAll()}};
+speedRange.oninput=()=>{speedValue.textContent=`${speedRange.value} ms`;if(timer)play()};
+checkboxes.forEach(cb=>cb.onchange=setup);
+
+originalArray=randArray();
+setup();
+</script>
+</body>
+</html>
